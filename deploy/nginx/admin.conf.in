@@ -1,0 +1,41 @@
+server {
+    listen __ADMIN_PORT__ ssl;
+    server_name __ADMIN_HOST__;
+    allow 127.0.0.1;
+    allow 10.0.0.0/8;
+    allow 172.16.0.0/12;
+    allow 192.168.0.0/16;
+    deny all;
+    ssl_certificate /data/abshare/tls/server.crt;
+    ssl_certificate_key /data/abshare/tls/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    access_log /data/abshare/logs/admin-access.log abshare_safe;
+    error_log /data/abshare/logs/admin-nginx-error.log warn;
+    client_max_body_size 4k;
+    client_body_timeout 15s;
+    send_timeout 60s;
+    location = /api/upload {
+        client_max_body_size 10g;
+        client_body_timeout 60s;
+        proxy_pass http://127.0.0.1:8766;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Connection "";
+        proxy_request_buffering off;
+        proxy_buffering off;
+        proxy_read_timeout 75s;
+        proxy_send_timeout 75s;
+        proxy_next_upstream off;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:8766;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+        proxy_max_temp_file_size 0;
+        proxy_read_timeout 65s;
+    }
+}

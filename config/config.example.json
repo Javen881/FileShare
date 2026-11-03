@@ -1,0 +1,11 @@
+{
+  "origin": "https://files.example.com",
+  "admin_origin": "https://192.168.1.10:8443",
+  "idle_seconds": 900,
+  "lifetime_seconds": 7200,
+  "invite_seconds": 300,
+  "max_file_bytes": 10737418240,
+  "quota_bytes": 1610612736000,
+  "reserve_bytes": 5368709120,
+  "stall_seconds": 60
+}

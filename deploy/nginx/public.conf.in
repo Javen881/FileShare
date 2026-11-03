@@ -1,0 +1,30 @@
+limit_req_zone $binary_remote_addr zone=abshare_login:1m rate=6r/m;
+limit_conn_zone $binary_remote_addr zone=abshare_connections:1m;
+map $uri $abshare_log_path {
+    ~^/enter/ /enter/redacted;
+    default $uri;
+}
+log_format abshare_safe '$remote_addr [$time_local] "$request_method $abshare_log_path" $status $body_bytes_sent';
+server {
+    listen __HTTPS_PORT__ ssl;
+    server_name __PUBLIC_HOST__;
+    ssl_certificate /data/abshare/tls/server.crt;
+    ssl_certificate_key /data/abshare/tls/server.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    access_log /data/abshare/logs/access.log abshare_safe;
+    error_log /data/abshare/logs/nginx-error.log warn;
+    client_max_body_size 10g;
+    client_body_timeout 60s;
+    send_timeout 60s;
+    limit_conn abshare_connections 12;
+    client_body_temp_path /data/abshare/nginx-temp;
+    location = /api/login {
+        limit_req zone=abshare_login burst=10 nodelay;
+        limit_req_status 429;
+        client_max_body_size 4k;
+        include /etc/nginx/snippets/abshare-proxy.conf;
+    }
+    location / {
+        include /etc/nginx/snippets/abshare-proxy.conf;
+    }
+}

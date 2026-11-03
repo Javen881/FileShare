@@ -1,0 +1,37 @@
+[Unit]
+Description=AB secure temporary file sharing
+After=network.target
+RequiresMountsFor=/data
+ConditionPathIsMountPoint=/data
+
+[Service]
+Type=simple
+User=abshare
+Group=abshare
+WorkingDirectory=/data/abshare/current
+Environment=ABSHARE_ROOT=/data/abshare
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/data/abshare/venv/bin/python -m app.server
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/abshare
+ReadOnlyPaths=/data/abshare/current /data/abshare/venv /data/abshare/config.json /data/abshare/tls
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=768M
+TasksMax=64
+StandardOutput=append:/data/abshare/logs/service.log
+StandardError=append:/data/abshare/logs/service.log
+
+[Install]
+WantedBy=multi-user.target

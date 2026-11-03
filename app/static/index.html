@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AB 共享空间</title><link rel="stylesheet" href="/assets/style.css"><script src="/assets/app.js" defer></script></head>
+<body><main><header><span class="mark">AB</span><div><h1>共享空间</h1><p>安全传输 · 文件留存</p></div><span id="badge">未授权</span></header>
+<section id="login"><h2>打开链接后，输入独立 PIN</h2><p>请输入管理员单独提供的 8 位 PIN。访问链接 5 分钟有效，只能授权一次。</p><form id="login-form"><label for="pin">访问 PIN</label><input id="pin" name="pin" type="password" inputmode="numeric" pattern="[0-9]{8}" maxlength="8" autocomplete="one-time-code" required placeholder="8 位数字"><button type="submit">进入共享空间</button></form><p id="no-invite" hidden>请向管理员获取新的专属访问链接。</p></section>
+<section id="workspace" hidden><div class="top"><div><h2 id="welcome">你的文件</h2><p id="session">读取授权状态…</p></div><button id="logout" class="secondary">退出</button></div>
+<div class="upload"><label for="file">选择文件上传</label><input id="file" type="file" multiple><button id="upload">上传所选文件</button><progress id="progress" value="0" max="100" hidden></progress><p id="upload-state">单文件最多 10 GiB，文件在授权失效后仍会保留。</p></div>
+<div class="top"><h2>共享文件</h2><button id="refresh" class="secondary">刷新列表</button></div><div id="breadcrumbs"></div><div id="files"></div><button id="more" class="secondary" hidden>加载更多</button><p class="hint">所有授权用户共用此目录，可上传、下载；不提供删除或覆盖操作。</p></section>
+<p id="message" role="status" aria-live="polite"></p><footer>无有效传输 15 分钟后自动退出 · 授权最长 2 小时<br>刷新页面不会延长授权，达到 2 小时上限会中止传输。</footer></main></body></html>
