@@ -1,6 +1,3 @@
-Failed to create stream fd: Operation not permitted
-Failed to create stream fd: Operation not permitted
-Failed to create stream fd: Operation not permitted
 import asyncio
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
