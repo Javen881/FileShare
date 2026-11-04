@@ -1,4 +1,8 @@
+Failed to create stream fd: Operation not permitted
+Failed to create stream fd: Operation not permitted
+Failed to create stream fd: Operation not permitted
 import asyncio
+import gzip
 import json
 from pathlib import Path
 import tempfile
@@ -50,6 +54,28 @@ class SecurityTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(r.status, 403)
         r = await self.request('POST', '/api/upload?name=x', headers=h | {'X-CSRF-Token': 'bad'}, data=b'x')
         self.assertEqual(r.status, 403)
+
+    async def test_invalid_unicode_invite_is_rejected_before_hashing(self):
+        for token in ['\ud800', 'é'*43, 'a'*42, 'a'*44, '../'+'a'*40]:
+            r = await self.request('POST', '/api/login', json={'token': token, 'pin': '12345678'})
+            self.assertEqual(r.status, 400, await r.text())
+            self.assertNotIn(COOKIE, r.cookies)
+        with core.db() as c:
+            self.assertEqual(c.execute('SELECT COUNT(*) FROM sessions').fetchone()[0], 0)
+
+    async def test_compressed_login_rejected_before_decompression(self):
+        for payload in [b'not-a-gzip-stream', gzip.compress(b' '*16384+b'{}')]:
+            r = await self.request('POST', '/api/login',
+                                   headers={'Content-Encoding': 'gzip', 'Content-Type': 'application/json'},
+                                   data=payload)
+            self.assertEqual(r.status, 415, await r.text())
+            self.assertNotIn(COOKIE, r.cookies)
+        await self.sign_in()
+
+    async def test_plain_login_body_limit_still_enforced(self):
+        r = await self.request('POST', '/api/login',
+                               headers={'Content-Type': 'application/json'}, data=b' '*4096+b'{}')
+        self.assertEqual(r.status, 413)
 
     async def test_invite_only_once_and_no_get_consumption(self):
         token, pin = core.issue('A', self.cfg)

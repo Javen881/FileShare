@@ -1,3 +1,6 @@
+Failed to create stream fd: Operation not permitted
+Failed to create stream fd: Operation not permitted
+Failed to create stream fd: Operation not permitted
 import asyncio
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
@@ -28,7 +31,8 @@ def fail(status, message):
     exception = {
         400: web.HTTPBadRequest, 401: web.HTTPUnauthorized, 403: web.HTTPForbidden,
         404: web.HTTPNotFound, 408: web.HTTPRequestTimeout, 409: web.HTTPConflict,
-        413: web.HTTPRequestEntityTooLarge, 429: web.HTTPTooManyRequests,
+        413: web.HTTPRequestEntityTooLarge, 415: web.HTTPUnsupportedMediaType,
+        429: web.HTTPTooManyRequests,
         507: web.HTTPInsufficientStorage,
     }[status]
     raise exception(text=message)
@@ -59,6 +63,8 @@ async def protect(request, handler):
             fail(403, '访问地址不匹配')
         if request.method not in ('GET', 'HEAD') and request.headers.get('Origin') != 'https://' + request.host:
             fail(403, '来源校验失败')
+        if request.headers.get('Content-Encoding', 'identity').lower() != 'identity':
+            fail(415, '不支持压缩请求体')
         response = await handler(request)
     except web.HTTPException as exc:
         response = web.json_response({'error': exc.text}, status=exc.status)
@@ -84,10 +90,11 @@ async def login(request):
     try:
         body = await request.json()
         token, pin = body['token'], body['pin']
-        if not isinstance(token, str) or not isinstance(pin, str) or len(token) > 100 or not re.fullmatch(r'\d{8}', pin):
+        if (not isinstance(token, str) or not re.fullmatch(r'[A-Za-z0-9_-]{43}', token)
+                or not isinstance(pin, str) or not re.fullmatch(r'[0-9]{8}', pin)):
             raise ValueError()
     except (ValueError, KeyError, TypeError):
-        fail(400, '请输入八位 PIN')
+        fail(400, '访问链接或 PIN 格式无效')
     key = core.digest(token)
     success = False
     user = None
@@ -333,7 +340,10 @@ def make_app(cfg=None):
     for partial in (core.ROOT / 'tmp').iterdir():
         if re.fullmatch('[0-9a-f]{32}', partial.name) and not partial.is_dir() and time.time()-partial.stat().st_mtime>180:
             partial.unlink()
-    app = web.Application(middlewares=[protect], client_max_size=4096)
+    # Reject encoded bodies before parsing: decompression must not happen in the
+    # HTTP parser before authentication or the application's size checks.
+    app = web.Application(middlewares=[protect], client_max_size=4096,
+                          handler_args={'auto_decompress': False})
     app['cfg'] = cfg or core.config()
     app['attempts'] = defaultdict(deque)
     app['active'] = defaultdict(int)
