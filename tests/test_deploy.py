@@ -17,6 +17,17 @@ class DeploymentConfigTests(unittest.TestCase):
             self.assertIn('DNS:files.example.com,IP:192.168.1.10',(out/'certificate-san.txt').read_text())
             self.assertNotIn('__PUBLIC_HOST__',(out/'nginx-public.conf').read_text())
 
+    def test_uploads_are_streamed_through_nginx(self):
+        proxy=(Path(__file__).parents[1]/'deploy/nginx/proxy.conf').read_text()
+        admin=(Path(__file__).parents[1]/'deploy/nginx/admin.conf.in').read_text()
+        self.assertIn('proxy_request_buffering off;',proxy)
+        self.assertIn('proxy_buffering off;',proxy)
+        self.assertIn('proxy_next_upstream off;',proxy)
+        upload=admin.split('location = /api/upload {',1)[1].split('}',1)[0]
+        self.assertIn('proxy_request_buffering off;',upload)
+        self.assertIn('proxy_buffering off;',upload)
+        self.assertIn('proxy_next_upstream off;',upload)
+
     def test_reject_conflicting_ports_and_injected_hosts(self):
         with tempfile.TemporaryDirectory() as d:
             for public,admin in [('http://files.example.com','https://admin.example.com:8443'),

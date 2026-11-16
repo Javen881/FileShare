@@ -85,6 +85,14 @@ sudo bash scripts/update.sh
 
 ## 7. 部署验收
 
+访客端和管理端上传必须关闭 Nginx 请求体缓冲，否则 Nginx 会先接收完整请求体，超过内存缓冲时写入临时文件，后端的分块读取并不是真正的端到端流式上传。仓库模板已在公网代理片段和管理端上传路由设置 `proxy_request_buffering off`。部署后检查实际生效配置，而不是只检查仓库模板：
+
+```bash
+sudo nginx -T 2>&1 | grep -n -A12 -B4 'proxy_request_buffering off'
+```
+
+公网 `/api/upload` 和管理端 `/api/upload` 都应命中该设置。`proxy_buffering off` 控制响应缓冲，不能替代 `proxy_request_buffering off`。关闭请求体缓冲后，仍需保留应用层单文件上限、配额、会话撤销和停滞超时；上传中断时应用负责删除未完成文件。
+
 服务启动后，在服务器执行（访问地址必须能从服务器正常解析和连接）：
 
 ```bash
